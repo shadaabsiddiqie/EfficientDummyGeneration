@@ -3,6 +3,7 @@ import math
 import pickle
 import random
 from PIL import Image
+
 #baisc layout code
 ll = 100 #layout length
 lb = 100 #layout breath
@@ -168,7 +169,6 @@ def matrix2ImgEDG(layout,userL,newCenters,ValidPosInSectors,realPos):
     # img.save('my.png')
     img.show()
 
-
 def EDG(posDum, noCent, r, k, dmax, dmin, userL):
     global layout
     
@@ -186,21 +186,127 @@ def EDG(posDum, noCent, r, k, dmax, dmin, userL):
         if  len(ValidPosInSectors[ran%k]) > 0 :
             realPos.append(ValidPosInSectors[ran%k][int(random.random()*len(ValidPosInSectors[ran%k]))])
         ran  = ran + 1
-    
-    # while len(realPos)<k:
-    #     if  len(ValidPosInSectors[ran%k]) > 0:
-    #         if ran == int(((360-sortAcos(bestCenters))*k)/360) and f == 0:
-    #             realPos.append(userL)
-    #             print("replaced")
-    #             print(userL)
-    #             f = 1
-    #         else :        
-    #             realPos.append(ValidPosInSectors[ran%k][int(random.random()*len(ValidPosInSectors[ran%k]))])
-    #             print(ValidPosInSectors[ran%k][int(random.random()*len(ValidPosInSectors[ran%k]))])
-    #         print(ran%k)
-    #         print('---')
-    #     ran  = ran + 1    
     matrix2ImgEDG(layout,userL,newCenters,ValidPosInSectors,realPos)
+
+def EdgeOfSectors(bestCenters,userL,dmax,k):
+    edgeSectors = []
+    for x in range(k):
+        edgeSectors.append(polCord(bestCenters[0]+userL[0],bestCenters[1]+userL[1],dmax,(2*x+1)/(2*k)))
+    return edgeSectors
+                 
+def matrix2ImgEDG2(layout,userL,newCenters,ValidPosInSectors,edgeSectors,probabilityValidPos,realDummyPos):
+    h, w = len(layout), len(layout[0])
+    data = np.zeros((h, w, 3), dtype=np.uint8)
+    #layout obstracles or none
+    for h in range(len(layout)):
+        for w in range(len(layout[0])):
+            if layout[h][w]==0:
+                data[h,w] = [0,255/2,0]
+            if layout[h][w]==-1:
+                data[h,w] = [255/2,0,0]
+    #ring and sectors
+    no_sectors = len(ValidPosInSectors)
+    for key in ValidPosInSectors.keys():
+        for p in ValidPosInSectors[key]:
+            data[p[0]][p[1]] = [0,0,(255*(key+1))/no_sectors]
+    #possible centers and user location
+    for c in newCenters:
+        data[c[0]+userL[0]][c[1]+userL[1]] = [255/2,0,255/2]
+    data[userL[0]][userL[1]] = [255,255,255]
+    #Dummy positions
+    for c in edgeSectors:
+        data[c[0]][c[1]] = [255,255,255]
+
+    #probabulity dristributin
+    for s in probabilityValidPos:
+        for p in s:
+            data[p[0]][p[1]] = [0,0,p[2]*20*255]
+    #real dummy postions
+    for p in realDummyPos:
+        data[p[0]][p[1]] = [0,255,0]           
+
+    img = Image.fromarray(data, 'RGB')
+    img = img.resize((600,600))
+    # img.save('my.png')
+    img.show()
+
+def nCr(n, r): 
+    return math.factorial(n)//math.factorial(r)//math.factorial(n-r)
+    
+def binomialDist(n,x,p):
+    return nCr(n,x)*(p**x)*((1-p)**(n-x))
+
+# def probStep(center,point,initialProb,n):
+#     distX = abs(center[0]-point[0]) 
+#     distY = abs(center[1]-point[1])
+#     f = math.factorial
+#     probX = f(n)*f(n)/(f(n-distX)*f(n+distX))
+#     probY = f(n)*f(n)/(f(n-distY)*f(n+distY))
+#     return initialProb*initialProb*probX*probY
+
+def sectorWidth(edgeSectors,ValidPosInSectors):
+    secWidth = []
+    for s in ValidPosInSectors.keys():
+        distMaxX = 0 
+        distMaxY = 0
+        distMax = 0 
+        for p in ValidPosInSectors[s]:
+            #should change n value down
+            distMaxX = max(abs(edgeSectors[s][0]-p[0]),distMaxX) 
+            distMaxY = max(abs(edgeSectors[s][1]-p[1]),distMaxY)
+            distMax = max(distMax,max(distMaxX,distMaxY))
+        secWidth.append(distMax)
+    return secWidth
+
+def ProbabilityValidPosBinomial(edgeSectors,ValidPosInSectors):
+    secWidth  =  sectorWidth(edgeSectors,ValidPosInSectors)
+    probabilityValidPos = []
+    for s in ValidPosInSectors.keys():
+        probTmp = []
+        for p in ValidPosInSectors[s]:
+
+            center = edgeSectors[s]
+            point = p
+            n = secWidth[s]
+
+            distX = abs(center[0]-point[0]) 
+            distY = abs(center[1]-point[1])
+            f = math.factorial            
+            probX = f(n)*f(n)/(f(n-distX)*f(n+distX))
+            probY = f(n)*f(n)/(f(n-distY)*f(n+distY))
+            probTmp.append((p[0],p[1],probX*probY))
+        probabilityValidPos.append(probTmp)
+    
+    # print(probabilityValidPos[0])
+    return probabilityValidPos
+
+# def 
+
+def ProbValidPosNorm(probabilityValidPos):    
+    probValidPosNorm=[]
+    for s in probabilityValidPos:
+        normTemp = []
+        sectProbSum = 0
+        for p in s:
+            sectProbSum = sectProbSum + p[2]
+        for p in s:
+            normTemp.append((p[0],p[1],p[2]/sectProbSum))
+        # print(sectProbSum)
+        probValidPosNorm.append(normTemp)
+    # print(probValidPosNorm)
+    return probValidPosNorm
+
+def RealDummyPos(probValidPosNorm):
+    realDummyPos = []
+    for s in probValidPosNorm:
+        ran = random.random()
+        tmpSum = 0
+        for p in s:
+            tmpSum = tmpSum + p[2]
+            if tmpSum >= ran:
+                realDummyPos.append((p[0],p[1]))
+                break
+    return realDummyPos
 
 def EDG2(posDum, noCent, r, k, dmax, dmin, userL):
     global layout
@@ -209,21 +315,17 @@ def EDG2(posDum, noCent, r, k, dmax, dmin, userL):
     sectors = sectorCreater(Udmaxmin,k)
     bestCenters = bestCenterEDG(layout, newCenters, Udmaxmin)
     ValidPosInSectors = ValidPosSectors(layout, sectors, (bestCenters[0]+userL[0],bestCenters[1]+userL[1])) 
-    
-    realPos  =  []
-    ran = 0
-    # print(ValidPosInSectors)
-    
-    while len(realPos)<k-1:
-        if  len(ValidPosInSectors[ran%k]) > 0 :
-            realPos.append(ValidPosInSectors[ran%k][int(random.random()*len(ValidPosInSectors[ran%k]))])
-        ran  = ran + 1
-    
-    
-    matrix2ImgEDG(layout,userL,newCenters,ValidPosInSectors,realPos)
+    edgeSectors = EdgeOfSectors(bestCenters,userL,dmax,k)
+    probabilityValidPosBinomial = ProbabilityValidPosBinomial(edgeSectors,ValidPosInSectors)
+    probValidPosNorm = ProbValidPosNorm(probabilityValidPosBinomial)
+    realDummyPos = RealDummyPos(probValidPosNorm)
+    print(realDummyPos)
+    # print(probabilityValidPos)
+    matrix2ImgEDG2(layout,userL,newCenters,ValidPosInSectors,edgeSectors,probValidPosNorm,realDummyPos)
 
+    
 
-#--------------------main code-------------------
+#--------------------main code------------------len(ValidPosInSectors[s])len(ValidPosInSectors[s])-
 
 with open('maxDumPos.txt', 'rb') as handle:
   posDum = pickle.loads(handle.read())
@@ -231,14 +333,14 @@ with open('maxDumPos.txt', 'rb') as handle:
 with open('maxDumSize.txt', 'rb') as handle:
   sizeDum = pickle.loads(handle.read())
 
-resetLayout(0.4)
+resetLayout(0.2)
 # layout[userL[0]][userL[1]]=8
 # print(layout)
 # ODG(posDum, userL, 2, 10)
 #EDG(posDum, noCent, r, k, dmax, dmin, userL)
 #dmin<r<dmax
-# EDG(posDum, 4, 3, 5, 5, 3, userL)
-EDG(posDum, 4, 20, 4, 21, 19, userL)
+# EDG2(posDum, 4, 3, 5, 5, 3, userL)
+EDG2(posDum, 4, 20, 4, 25, 15, userL)
 # print(layout)
 
 
