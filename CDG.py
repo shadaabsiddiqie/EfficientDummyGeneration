@@ -55,6 +55,7 @@ def resetLayout(probabilityDum):
     for i in range(ll):
         for j in range(lb):
             # rn = random.choice(randRange)
+            # if i%5 !=0 or j%5 != 0:
             if random.random() <= probabilityDum: 
                 layout[i][j] = 0
             else :
@@ -110,7 +111,6 @@ def realDumFromValidPos(validDumPos, k):
 def matrix2ImgODG(userL,r,k,realPos):
     h, w = len(layout), len(layout[0])
     data = np.zeros((h, w, 3), dtype=np.uint8)
-    
     #layout obstracles or none
     for h in range(len(layout)):
         for w in range(len(layout[0])):
@@ -120,7 +120,12 @@ def matrix2ImgODG(userL,r,k,realPos):
                 data[h,w] = [0,255*layout[h][w],0]
     
     for p in realPos:
-        data[p[0],p[1]] = [0,0,255]
+        data[p[0],p[1]] = [255,255,255]
+        # img = Image.fromarray(data, 'RGB')
+        # img = img.resize((600,600))
+        # img.show()
+
+
     
     img = Image.fromarray(data, 'RGB')
     img = img.resize((600,600))
@@ -132,11 +137,21 @@ def ODG(posDum, userL, r, k):
     for x in posDum[r]:
         if layout[userL[0]+x[0]][userL[1]+x[1]] != 0:
             validDumPos.append(x)
+    # return validDumPos 
     realDumPos = realDumFromValidPos(validDumPos, k)
     realPos = []
     for x in realDumPos:
         realPos.append((x[0]+userL[0],x[1]+userL[1]))
-        
+    # print(realPos)
+    realPosShift = []
+    for p in realPos:
+        realPosShift.append((p[0]-userL[0],p[1]-userL[1]))
+    
+    realPosShift = sorted(realPosShift, key=sortAcos)
+    realPos = []
+    for p in realPosShift:
+        realPos.append((p[0]+userL[0],p[1]+userL[1]))
+    # print(realPos)
     # matrix2ImgODG(userL,r,k,realPos)
     return realPos
 #-------------------------------EDG-------------------------------
@@ -223,6 +238,7 @@ def EDG(posDum, noCent, r, k, dmax, dmin, userL):
     bestCenters = bestCenterEDG(layout, newCenters, Udmaxmin)
     sectors = sectorCreater(Udmaxmin,k)
     ValidPosInSectors = ValidPosSectors(layout, sectors, (bestCenters[0]+userL[0],bestCenters[1]+userL[1])) 
+    # return ValidPosInSectors
     realPos  =  []
     ran = 0
     f = 0
@@ -232,6 +248,16 @@ def EDG(posDum, noCent, r, k, dmax, dmin, userL):
             realPos.append(ValidPosInSectors[ran%k][int(random.random()*len(ValidPosInSectors[ran%k]))])
         ran  = ran + 1
     # matrix2ImgEDG(layout,userL,newCenters,ValidPosInSectors,realPos)
+    realPosShift = []
+    for p in realPos:
+        realPosShift.append((p[0]-bestCenters[0]-userL[0],p[1]-bestCenters[1]-userL[1]))
+    
+    realPosShift = sorted(realPosShift, key=sortAcos)
+    realPos = []
+    for p in realPosShift:
+        realPos.append((p[0]+bestCenters[0]+userL[0],p[1]+bestCenters[1]+userL[1]))
+    
+
     return (realPos,(bestCenters[0]+userL[0],bestCenters[1]+userL[1]))
 
 #----------------------------------EDG2-----------------------------------
@@ -254,19 +280,20 @@ def matrix2ImgEDG2(layout,userL,newCenters,ValidPosInSectors,edgeSectors,probabi
     #layout obstracles or none
     for h in range(len(layout)):
         for w in range(len(layout[0])):
-            if layout[h][w]==0:
-                data[h,w] = [255,0,0]
-            else:
-                data[h,w] = [0,255*layout[h][w],0]
+            data[h,w] = [255,255,255]
+            # if layout[h][w]==0:
+            #     data[h,w] = [255,0,0]
+            # else:
+            #     data[h,w] = [0,255*layout[h][w],0]
     #ring and sectors
-    no_sectors = len(ValidPosInSectors)
-    for key in ValidPosInSectors.keys():
-        for p in ValidPosInSectors[key]:
-            data[p[0]][p[1]] = [0,0,(255*(key+1))/no_sectors]
+    # no_sectors = len(ValidPosInSectors)
+    # for key in ValidPosInSectors.keys():
+    #     for p in ValidPosInSectors[key]:
+    #         data[p[0]][p[1]] = [0,0,(255*(key+1))/no_sectors]
     #possible centers and user location
-    for c in newCenters:
-        data[c[0]+userL[0]][c[1]+userL[1]] = [255/2,0,255/2]
-    data[userL[0]][userL[1]] = [255,255,255]
+    # for c in newCenters:
+    #     data[c[0]+userL[0]][c[1]+userL[1]] = [255/2,0,255/2]
+    # data[userL[0]][userL[1]] = [255,255,255]
     #Dummy positions
     # for c in edgeSectors:
     #     data[c[0]][c[1]] = [255,255,255]
@@ -274,21 +301,21 @@ def matrix2ImgEDG2(layout,userL,newCenters,ValidPosInSectors,edgeSectors,probabi
     #probabulity dristributin
     for s in probabilityValidPos:
         for p in s:
-            data[p[0]][p[1]] = [0,0,p[2]*20*255]
+            data[p[0]][p[1]] = [p[2]*30*255,p[2]*30*255,p[2]*30*255]
 
     img = Image.fromarray(data, 'RGB')
     img = img.resize((600,600))
-    # img.save('my.png')
+    img.save('my.png')
     img.show()
 
     # real dummy postions
-    for p in realDummyPos:
-        data[p[0]][p[1]] = [255,255,255]           
+    # for p in realDummyPos:
+    #     data[p[0]][p[1]] = [255,255,255]           
 
-    img = Image.fromarray(data, 'RGB')
-    img = img.resize((600,600))
+    # img = Image.fromarray(data, 'RGB')
+    # img = img.resize((600,600))
     # img.save('my.png')
-    img.show()
+    # img.show()
 
 def sectorWidth(edgeSectors,ValidPosInSectors):
     secWidth = []
@@ -326,19 +353,19 @@ def ProbabilityValidPosBinomial(edgeSectors,ValidPosInSectors):
     # print(probabilityValidPos[0])
     return probabilityValidPos
 
-def NormalProbDristCR(edgeSectors,ValidPosInSectors):
+def NormalProbDristCR(edgeSectors,ValidPosInSectors,sigCR):
     probabilityValidPos = []
     for s in ValidPosInSectors.keys():
         probTmp = []
         for p in ValidPosInSectors[s]:
             center = edgeSectors[s]
             x = math.sqrt((center[0] - p[0])**2 + (center[1] - p[1])**2)
-            probTmp.append((p[0],p[1],normalDistribution(0,2,x)))
+            probTmp.append((p[0],p[1],normalDistribution(0,sigCR,x)))
         probabilityValidPos.append(probTmp)
     # print(probabilityValidPos[0])
     return probabilityValidPos
 
-def NormalProbDristEntropy(edgeSectors,ValidPosInSectors):
+def NormalProbDristEntropy(edgeSectors,ValidPosInSectors,sigE):
     global layout
     probabilityValidPos = []
     for s in ValidPosInSectors.keys():
@@ -348,7 +375,7 @@ def NormalProbDristEntropy(edgeSectors,ValidPosInSectors):
             # x = math.sqrt((center[0] - p[0])**2 + (center[1] - p[1])**2)
             x = abs(layout[p[0]][p[1]]-layout[userL[0]][userL[1]])
             # print(x)
-            probTmp.append((p[0],p[1],normalDistribution(0,0.01,x)))
+            probTmp.append((p[0],p[1],normalDistribution(0,sigE,x)))
         probabilityValidPos.append(probTmp)
     # print(probabilityValidPos[0])
     return probabilityValidPos
@@ -394,7 +421,7 @@ def RealDummyPos(probValidPosNorm):
                 break
     return realDummyPos
 
-def EDG2(posDum, noCent, r, k, dmax, dmin, userL):
+def EDG2(posDum, noCent, r, k, dmax, dmin, userL,sigCR,sigE):
     global layout
     newCenters = realDumFromValidPos(posDum[r], noCent)
     Udmaxmin = unionDmnx(posDum, dmax, dmin) 
@@ -402,20 +429,33 @@ def EDG2(posDum, noCent, r, k, dmax, dmin, userL):
     bestCenters = bestCenterEDG(layout, newCenters, Udmaxmin)
     # print((bestCenters[0]+userL[0],bestCenters[1]+userL[1]) )
     ValidPosInSectors = ValidPosSectors(layout, sectors, (bestCenters[0]+userL[0],bestCenters[1]+userL[1])) 
+    # return ValidPosInSectors
     edgeSectors = EdgeOfSectors(bestCenters,userL,dmax,k)
     # probabilityValidPosBinomial = ProbabilityValidPosBinomial(edgeSectors,ValidPosInSectors)
-    normalProbDristCR = NormalProbDristCR(edgeSectors,ValidPosInSectors)
+    normalProbDristCR = NormalProbDristCR(edgeSectors,ValidPosInSectors,sigCR)
     normalisedProbDristCR = ProbValidPosNorm(normalProbDristCR)
     
-    normalProbDristEntrop = NormalProbDristEntropy(edgeSectors,ValidPosInSectors)
-    normalisedProbDristEntrop = ProbValidPosNorm(normalProbDristEntrop)
+    # normalProbDristEntrop = NormalProbDristEntropy(edgeSectors,ValidPosInSectors,sigE)
+    # normalisedProbDristEntrop = ProbValidPosNorm(normalProbDristEntrop)
     
-    probValidPosNorm = mixTwoProbabulity(normalisedProbDristCR,normalisedProbDristEntrop,0,1)
-    
+    normalisedProbDristEntrop = normalisedProbDristCR
+    # normalisedProbDristCR = normalisedProbDristEntrop
+
+    probValidPosNorm = mixTwoProbabulity(normalisedProbDristCR,normalisedProbDristEntrop,1,0)
     realDummyPos = RealDummyPos(probValidPosNorm)
     
-    # matrix2ImgEDG2(layout,userL,newCenters,ValidPosInSectors,edgeSectors,probValidPosNorm,realDummyPos)
-    return (realDummyPos , bestCenters)
+    realPosShift = []
+    for p in realDummyPos:
+        realPosShift.append((p[0]-bestCenters[0]-userL[0],p[1]-bestCenters[1]-userL[1]))
+    
+    realPosShift = sorted(realPosShift, key=sortAcos)
+    realPos = []
+    for p in realPosShift:
+        realPos.append((p[0]+bestCenters[0]+userL[0],p[1]+bestCenters[1]+userL[1]))
+    
+
+    matrix2ImgEDG2(layout,userL,newCenters,ValidPosInSectors,edgeSectors,probValidPosNorm,realDummyPos)
+    return (realPos , (bestCenters[0]+userL[0],bestCenters[1]+userL[1]))
 
 #--------------------------------Results----------------------------
 
@@ -423,6 +463,7 @@ def areaTriangle(p1, p2, p3):
     a = math.sqrt((p1[0]-p2[0])**2+(p1[1]-p2[1])**2)
     b = math.sqrt((p2[0]-p3[0])**2+(p2[1]-p3[1])**2)
     c = math.sqrt((p3[0]-p1[0])**2+(p3[1]-p1[1])**2)
+    # print(a,b,c)
     s = (a + b + c)/2
     # print(a,b,c)
     Area = math.sqrt((s*(s-a)*(s-b)*(s-c)))
@@ -438,32 +479,26 @@ def AvgDistBetwDumm(listPoints):
     return aDD
 
 def effectiveCR(listPoints,center):
+
     totalArea = 0
     for p in range(len(listPoints)):
+
         p1 = listPoints[p%len(listPoints)]
         p2 = listPoints[(p+1)%len(listPoints)]
-        totalArea = areaTriangle(p1,p2,center) + totalArea
+        # print(p1,p2,center)
+        if layout[p1[0]][p1[1]]!=0 and layout[p2[0]][p2[1]]!=0:
+            totalArea = areaTriangle(p1,p2,center) + totalArea
     return totalArea
+
 def Entropy(listPoints,layout):
     sE = 0 
     for p in listPoints:
         sE = sE + layout[p[0]][p[1]]
-    # print(sE)
-    # print("asd")
     total = 0
-    # print(listPoints)
-    # for p in listPoints:
-    #     print (layout[p[0]][p[1]])
-    # print ('----')    
     for p in listPoints:
         pr = layout[p[0]][p[1]]/sE
-        # print (pr)
-        if pr == 0 :
-            # print("pr = 0 nono")
-            a =1
-        else:
+        if pr != 0 :
             total = total - pr*math.log2(pr)
-        # log
     return total
 
 ''' Graphes to draw
@@ -472,8 +507,6 @@ Average distance between adjacent dummies based Vs k
 Number of valid grids Vs the probability of the existence of obstacles
 Average distance between adjacent dummies based Vs d_max
 Number of dummies on obstacles based Vs k
-Entropy Vs K
-EffectiveCR vs K
 '''
 
 #--------------------main code------------------len(ValidPosInSectors[s])len(ValidPosInSectors[s])-
@@ -484,7 +517,7 @@ with open('maxDumPos.txt', 'rb') as handle:
 with open('maxDumSize.txt', 'rb') as handle:
   sizeDum = pickle.loads(handle.read())
 
-resetLayout(0.2)
+resetLayout(0.9)
 # ODG(posDum, userL, 25, 10)
 # EDG1-2(posDum, noCent, r, k, dmax, dmin, userL)
 # dmin<r<dmax
@@ -492,16 +525,17 @@ resetLayout(0.2)
 
 # -------------EDG --- Dmin Vs CR ------------------------------
 # dmax = 25
-# dmin = 20
-# k = 8
-# for dmin in range(1,dmax-1):
+# dmin = 24
+# k = 10
+# for dmin in range(1,dmax):
 #     # print(dmin)
 #     area = 0
 #     noSamples = 100
 #     for samp in range(noSamples):
-#         resetLayout(0.8)
-#         (dummyPos,center) = EDG(posDum, 4, dmin, k, dmax, dmin, userL)
+#         resetLayout(0.3)
+#         (dummyPos,center) = EDG2(posDum, 4, dmin, k, dmax, dmin, userL,2,0.001)
 #         area = effectiveCR(dummyPos,center) + area
+#         # area = AvgDistBetwDumm(dummyPos) + area
 #         # print(area)
 #     print(area/noSamples)
 
@@ -510,55 +544,158 @@ resetLayout(0.2)
 
 # dmax = 25
 # dmin = 20
-# for k in range(3,40):
+# for k in range(2,41):
 #     aDD = 0
 #     noSamples = 100
 #     for samp in range(noSamples):
-#         resetLayout(0.8)
+#         resetLayout(0.3)
 #         (dummyPos,center) = EDG(posDum, 4, dmin, k, dmax, dmin, userL)
+#         # dummyPos = CDG(userL,dmax-1,k)
+#         # center = userL
 #         aDD = AvgDistBetwDumm(dummyPos) + aDD
 #         # print(area)
 #     print(aDD/noSamples)
 
 
-#-------------Average distance between adjacent dummies based Vs d_max-------------
+#---------------------------------EffectiveCR Vs Obs---------------------------------
+
+# dmax = 25
+# dmin = 15
+# k = 10
+# for obs in range(1,10):
+#     # print (obs,"---")
+#     area = 0
+#     noSamples = 100
+#     for samp in range(noSamples):
+#         resetLayout(obs/10.0)
+#         # (dummyPos,center) = EDG2(posDum, 4, dmin, k, dmax, dmin, userL,2,0.001)
+#         dummyPos = ODG(posDum,userL,dmax,k)
+#         center = userL
+#         # area = AvgDistBetwDumm(dummyPos)+area
+#         area = effectiveCR(dummyPos,center) + area
+#         # print(area)
+#     print(area/noSamples)
 
 
 #-----------------------------------Entropy Vs K-----------------------------------
 
 # dmax = 25
 # dmin = 15
-# for k in range(2,40):
+# for k in range(2,41):
 #     E = 0
 #     noSamples = 100
 #     for samp in range(noSamples):
 #         resetLayout(0.3)
 #         # print(layout[userL[0]][userL[1]])
-#         # (dummyPos,center) = EDG(posDum, 4, dmin, k, dmax, dmin, userL)
-#         dummyPos = CDG(userL,dmax,k)
+#         (dummyPos,center) = EDG2(posDum, 4, dmin, k, dmax, dmin, userL,2,0.001)
+#         # dummyPos = ODG(posDum,userL,dmax,k)
 #         E = Entropy(dummyPos,layout) + E
 #         # print(area)
 #     print(E/noSamples)
 
 
 #---------------------------------EffectiveCR Vs K---------------------------------
-dmax = 25
-dmin = 15
-for k in range(2,40):
-    E = 0
-    noSamples = 100
-    for samp in range(noSamples):
-        resetLayout(0.3)
-        # (dummyPos,center) = EDG(posDum, 4, dmin, k, dmax, dmin, userL)
-        # dummyPos = CDG(userL,dmax,k)
-        E = Entropy(dummyPos,layout) + E
-        # print(area)
-    print(E/noSamples)
+# dmax = 25
+# dmin = 150.3
+# for k in range(1,40):
+#     area = 0
+#     noSamples = 100
+#     for samp in range(noSamples):
+#         resetLayout(0.8)
+#         # (dummyPos,center) = EDG(posDum, 4, dmin, k, dmax, dmin, userL)
+#         dummyPos = ODG(posDum,userL,dmax,k)
+#         center = userL
+#         area = effectiveCR(dummyPos,center) + area
+#         # print(area)
+#     print(area/noSamples)
+
+# -------------------------EffectiveCR Vs sigCR------------------------ gettinf best at sigCR =0 then decreasing 3,100/30
+# ----------------------------Entropy Vs sigE---------------------------- 
+
+# dmax = 25
+# dmin = 15
+# sigCR = 2
+# sigE = 0.1 
+# k = 10
+# listE = []
+# listCR = []
+# for sigCR in range(3,50):
+#     for sigE in range(1,100):
+#         area = 0
+#         E = 0
+#         noSamples = 100
+#         for samp in range(noSamples):
+#             resetLayout(0.3)
+#             (dummyPos,center) = EDG2(posDum, 4, dmin, k, dmax, dmin, userL,sigCR/15,sigE/500)
+#             # dummyPos = ODG(posDum,userL,dmax,k)
+#             # center = userL
+#             # sinCR,sigE
+#             area = effectiveCR(dummyPos,center) + area= 25
+# dmin = 15
+# k = 10
+# for obs in range(1,20):
+#     area = 0
+#     no_VC = 0
+#     noSamples = 500
+#     for samp in range(noSamples):
+#         resetLayout(obs/20.0)
+
+    #     validPosition = CDG(userL,dmax,k)
+    #     center = userL
+    #     for p in dummyPos:
+    #         if layout[p[0]][p[1]]!=0:
+    #             no_VC =  no_VC + 1
+    # print(no_VC/noSamples)
+
+    #     validPosition =ODG(posDum, userL, dmax, k)
+    #     center = userL
+    #     for p in dummyPos:
+#             E = Entropy(dummyPos,layout) + E
+#             # print(area)
+#         # print(area/noSamples)
+#         listCR.append(area/noSamples)
+#         listE.append(E/noSamples)
+
+# print(listE)
+# print(listCR)
+
+#-----------------------------no of valied cell Vs obstracle------------------------------------
+# dmax = 25
+# dmin = 15
+# k = 10
+# for obs in range(1,20):
+#     area = 0
+#     no_VC = 0
+#     noSamples = 500
+#     for samp in range(noSamples):
+#         resetLayout(obs/20.0)
+
+    #     validPosition = CDG(userL,dmax,k)
+    #     center = userL
+    #     for p in dummyPos:
+    #         if layout[p[0]][p[1]]!=0:
+    #             no_VC =  no_VC + 1
+    # print(no_VC/noSamples)
+
+    #     validPosition =ODG(posDum, userL, dmax, k)
+    #     center = userL
+    #     for p in dummyPos:
+    #         if layout[p[0]+userL[0]][p[1]+userL[1]]!=0:
+    #             no_VC =  no_VC + 1
+    # print(no_VC/noSamples)
+
+
+        # validPosition = EDG(posDum, 4, dmin, k, dmax, dmin, userL)
 
 
 
-# (dummyPos,center) = EDG2(posDum, 8, 15, 9, 25, 15, userL)
-# effectiveCR(dummyPos,center)
+resetLayout(0)
+# (dummyPos,center) = EDG(posDum, 8, 15, 100, 25, 15, userL)
+(dummyPos,center) = EDG2(posDum, 4, 15, 7, 25, 15, userL,4,0.001)
+# print(effectiveCR(dummyPos,center)) 
+# print(Entropy(dummyPos,layout))
+# dummyPos = ODG(posDum, userL, 24, 8)
+
+print(effectiveCR(dummyPos,userL))
 # print (center)
 # CDG(userL,20,7)
-# ODG(posDum, userL, 10, 8)
